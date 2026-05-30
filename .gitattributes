@@ -1,0 +1,4 @@
+# Normalize line endings to LF in the repo so the generated src/deals.js is
+# byte-identical across Windows/macOS/Linux and the CI determinism check passes.
+* text=auto eol=lf
+*.png binary
