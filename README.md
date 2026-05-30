@@ -1,5 +1,7 @@
 # Klondike Solitaire
 
+#### I created this vibe coding project simply because I don't want to watch the ads every time before playing the Solidaire that comes pre-installed with Microsoft systems!
+
 A dark-themed, browser-based Klondike Solitaire you play locally — no install, no
 server, no internet. One-card draw, unlimited undo, and four difficulty levels.
 
