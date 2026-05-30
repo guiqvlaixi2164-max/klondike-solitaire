@@ -406,6 +406,26 @@ with a one-line hook in `interactions.js`.
   leftover `transform` (dx=0); flip-in fires on draw and reveal; landed fires on
   collect; reduced-motion disables effects; zero exceptions. Unit tests green.
 
+## Phase 11 — Win cascade (implemented)
+
+`src/win-anim.js` (new), hooked from `app.onWin` and torn down in `newGame`.
+
+- Full-screen `<canvas>` (z below the stats overlay). On win, a launch queue of
+  all 52 cards (Kings first, cycling suits) is spawned from the foundation
+  positions on a ~70ms cadence. Each card runs simple physics (gravity + floor
+  bounce with restitution, constant horizontal velocity) and is drawn each frame
+  **without clearing** the canvas → trails. Cards are removed when off-screen.
+- The canvas is never cleared during play, so trails accumulate (the iconic look).
+  Cards are drawn as simplified faces (rounded rect + rank/suit glyphs).
+- The stats overlay is held back; `onWin` passes a `show` callback that
+  `win-anim` invokes when the cascade ends (queue empty + no cards, or a 12s cap)
+  or when the canvas is clicked (skip). `prefers-reduced-motion` → `show()`
+  immediately, no canvas. `newGame` calls `stop()` (clears + hides).
+- **Verification (CDP):** overlay held hidden during play; canvas shown and
+  painting non-transparent pixels; click-to-skip reveals overlay; New Game hides
+  canvas + overlay; reduced-motion goes straight to overlay with no canvas; zero
+  exceptions.
+
 ---
 
 ## 9. Commands reference

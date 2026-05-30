@@ -223,6 +223,15 @@ select {
   .card.flip-in, .card.landed { animation: none; }
 }
 
+/* ---- win cascade canvas (below the stats overlay) ---- */
+#win-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+  display: none;
+}
+
 /* ---- win overlay ---- */
 .overlay {
   position: fixed; inset: 0;

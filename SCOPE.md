@@ -281,3 +281,13 @@ and committed.
   cursor); reveals still animate.
 - Honors `prefers-reduced-motion: reduce` (animations off). No new dependencies.
 - See `ANIMATION_PLAN.md` for the design.
+
+### 11.6 Win celebration — bouncing-card cascade (implemented)
+- On win, the classic Windows-Solitaire cascade plays on a full-screen `<canvas>`
+  (`src/win-anim.js`): foundation cards launch one by one, fall under gravity,
+  bounce off the bottom in arcs, and leave trails that paint the screen.
+- The stats overlay is **held back** and fades in after the cascade finishes (or
+  immediately when the player **clicks to skip**).
+- Canvas-drawn simplified card faces (rounded rect + rank/suit, suit-colored) from
+  the cards' suit/rank — no images. Honors `prefers-reduced-motion` (skips to the
+  overlay). New Game tears the canvas down.

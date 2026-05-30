@@ -39,6 +39,11 @@ Number cards show standard pip layouts; court cards use suit-colored chess
 glyphs (J = ♞, Q = ♛, K = ♚). Cards animate when moving, flipping, and being
 collected (snappy ~160ms); this respects your `prefers-reduced-motion` setting.
 
+When you win, a classic bouncing-card cascade paints the screen before the stats
+appear — click anywhere to skip it.
+
+![Win cascade](win_preview.png)
+
 Standard Klondike rules: build the four foundations up A→K by suit; build tableau
 columns down in alternating colors; only Kings go on empty columns. Win by moving
 all 52 cards to the foundations.

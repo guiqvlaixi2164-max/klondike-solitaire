@@ -165,6 +165,7 @@
 
   function newGame(diff) {
     if (app.autoRunning) stopAutoCollect();
+    if (root.winAnim) root.winAnim.stop();
     app.difficulty = diff || app.difficulty;
     var order = dealForDifficulty(app.difficulty);
     app.state = engine.dealFromOrder(order);
@@ -182,7 +183,12 @@
     var t = document.getElementById('time').textContent;
     document.getElementById('win-stats').textContent =
       'Solved in ' + app.state.moves + ' moves · ' + t;
-    document.getElementById('win-overlay').classList.remove('hidden');
+    var overlay = document.getElementById('win-overlay');
+    overlay.classList.add('hidden');
+    var show = function () { overlay.classList.remove('hidden'); };
+    // Play the bouncing-card cascade first; reveal the stats overlay after it
+    // finishes (or when the player clicks to skip). winAnim handles reduced-motion.
+    if (root.winAnim) root.winAnim.play(app.state, show); else show();
   }
 
   app.getState = function () { return app.state; };
