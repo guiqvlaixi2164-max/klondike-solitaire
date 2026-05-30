@@ -122,7 +122,7 @@
         offset += pile[i].up ? 30 : 14; // --fan-up / --fan-down
       }
       // keep column tall enough to receive drops on empty space
-      colEl.style.minHeight = (offset + 128) + 'px';
+      colEl.style.minHeight = (offset + 140) + 'px';
     }
   }
 

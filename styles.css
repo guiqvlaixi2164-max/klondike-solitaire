@@ -17,8 +17,8 @@
   --selected: #ffd54a;
   --drop: #6ee7a8;
 
-  --card-w: 92px;
-  --card-h: 128px;
+  --card-w: 100px;
+  --card-h: 140px;
   --fan-up: 30px;            /* vertical offset between stacked face-up cards */
   --fan-down: 14px;          /* tighter offset for face-down cards */
   --radius: 9px;
@@ -65,6 +65,9 @@ button {
 }
 button:hover:not(:disabled) { filter: brightness(1.08); }
 button:disabled { opacity: .4; cursor: default; }
+
+button[hidden] { display: none; }
+button.auto { background: var(--drop); color: #04331f; }
 
 .difficulty { color: var(--muted); font-size: 14px; display: flex; align-items: center; gap: 6px; }
 select {
@@ -148,25 +151,27 @@ select {
   position: absolute;
   font-weight: 700;
   line-height: 1;
-  font-size: 18px;
+  font-size: 15px;
   display: flex;
   flex-direction: column;
   align-items: center;
+  white-space: nowrap;
 }
-.card .corner.tl { top: 6px; left: 7px; }
-.card .corner.br { bottom: 6px; right: 7px; transform: rotate(180deg); }
-.card .corner .glyph { font-size: 14px; margin-top: 1px; }
+.card .corner.tl { top: 5px; left: 5px; }
+.card .corner.br { bottom: 5px; right: 5px; transform: rotate(180deg); }
+.card .corner .glyph { font-size: 12px; margin-top: 1px; }
 
-/* pip field for number cards (A-10) — pips placed by % within an inset region */
-.card .pips { position: absolute; left: 18px; right: 18px; top: 16px; bottom: 16px; }
+/* pip field for number cards (A-10) — pips placed by % within an inset region.
+   The field is inset clear of the corner indices so pips never overlap them. */
+.card .pips { position: absolute; left: 30px; right: 30px; top: 32px; bottom: 32px; }
 .card .pip {
   position: absolute;
-  font-size: 24px;
+  font-size: 19px;
   line-height: 1;
   transform: translate(-50%, -50%);
 }
 .card .pip.flip { transform: translate(-50%, -50%) rotate(180deg); } /* lower-half pips */
-.card .pip.ace { font-size: 56px; }
+.card .pip.ace { font-size: 54px; }
 
 /* court cards (J/Q/K): suit-colored chess-piece glyph */
 .card .court {

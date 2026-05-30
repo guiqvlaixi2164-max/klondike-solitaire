@@ -23,6 +23,12 @@ That's it — the whole game runs from the local files over `file://`.
   - **drag and drop** it onto a destination.
 - **Auto to foundation:** **double-click** a card to send it to its foundation
   if the move is legal.
+- **Foundation → tableau:** you can drag (or click-move) a card back down from a
+  foundation onto the tableau, per the rules, for more advanced play.
+- **Auto-Collect:** once every card is known (the stock is empty and no tableau
+  cards are face-down), an **Auto-Collect** button appears next to Undo. Click it
+  to watch the remaining cards fly to the foundations one by one, in rank order,
+  each with its collect sound — it does not skip straight to the win screen.
 - **Undo:** click **Undo** (or press **Ctrl/Cmd+Z**). Unlimited within a match.
 - **New Game / Difficulty:** pick a level and press **New Game**. Changing the
   difficulty applies on the next New Game.

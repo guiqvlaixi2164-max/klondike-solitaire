@@ -12,7 +12,9 @@
     difficulty: 'easy',
     timerId: null,
     startTime: 0,
-    running: false
+    running: false,
+    autoRunning: false,   // true while Auto-Collect is animating
+    autoTimer: null
   };
 
   // ---- deal selection ----------------------------------------------------
@@ -51,7 +53,67 @@
   }
 
   function updateUndoBtn() {
-    document.getElementById('undo').disabled = app.history.length === 0;
+    document.getElementById('undo').disabled = app.history.length === 0 || app.autoRunning;
+  }
+
+  // ---- auto-collect ------------------------------------------------------
+  // Available once everything is known: stock empty and no face-down tableau
+  // cards. From there the endgame is finishable by foundation moves alone.
+  function canAutoCollect(st) {
+    if (st.stock.length) return false;
+    for (var c = 0; c < 7; c++) {
+      var col = st.tableau[c];
+      for (var i = 0; i < col.length; i++) if (!col[i].up) return false;
+    }
+    return !engine.isWin(st);
+  }
+
+  // The next card to send to a foundation, lowest rank first (numerical order).
+  function nextAutoMove(st) {
+    var bestRank = 99, move = null;
+    for (var c = 0; c < 7; c++) {
+      var col = st.tableau[c];
+      if (!col.length) continue;
+      var t = col[col.length - 1];
+      if (t.up && engine.canMoveToFoundation(t, st.foundations[t.s]) && t.r < bestRank) {
+        bestRank = t.r; move = { type: engine.MOVES.TABLEAU_TO_FOUNDATION, from: c };
+      }
+    }
+    var w = engine.top(st.waste);
+    if (w && engine.canMoveToFoundation(w, st.foundations[w.s]) && w.r < bestRank) {
+      move = { type: engine.MOVES.WASTE_TO_FOUNDATION };
+    }
+    return move;
+  }
+
+  function updateAutoBtn() {
+    document.getElementById('auto-collect').hidden = app.autoRunning || !canAutoCollect(app.state);
+  }
+
+  function startAutoCollect() {
+    if (app.autoRunning || !canAutoCollect(app.state)) return;
+    app.autoRunning = true;
+    document.getElementById('new-game').disabled = true;
+    document.getElementById('difficulty').disabled = true;
+    updateUndoBtn();
+    updateAutoBtn();
+    // Step one card at a time so the player sees them collected in order.
+    app.autoTimer = setInterval(function () {
+      var m = nextAutoMove(app.state);
+      if (!m) { stopAutoCollect(); return; }
+      commit(m); // commit plays the collect sound + re-renders + checks win
+      if (engine.isWin(app.state)) stopAutoCollect();
+    }, 200);
+  }
+
+  function stopAutoCollect() {
+    if (app.autoTimer) clearInterval(app.autoTimer);
+    app.autoTimer = null;
+    app.autoRunning = false;
+    document.getElementById('new-game').disabled = false;
+    document.getElementById('difficulty').disabled = false;
+    updateUndoBtn();
+    updateAutoBtn();
   }
 
   // ---- core actions ------------------------------------------------------
@@ -59,6 +121,7 @@
     root.render(app.state);
     updateStats();
     updateUndoBtn();
+    updateAutoBtn();
     if (engine.isWin(app.state)) onWin();
   }
 
@@ -101,6 +164,7 @@
   }
 
   function newGame(diff) {
+    if (app.autoRunning) stopAutoCollect();
     app.difficulty = diff || app.difficulty;
     var order = dealForDifficulty(app.difficulty);
     app.state = engine.dealFromOrder(order);
@@ -122,6 +186,7 @@
   }
 
   app.getState = function () { return app.state; };
+  app.sync = afterChange; // re-render + refresh controls from current state
   app.commit = commit;
   app.undo = undo;
   app.newGame = newGame;
@@ -135,6 +200,7 @@
       newGame(document.getElementById('difficulty').value);
     });
     document.getElementById('undo').addEventListener('click', undo);
+    document.getElementById('auto-collect').addEventListener('click', startAutoCollect);
     document.getElementById('sound-toggle').addEventListener('click', function (e) {
       if (!root.sound) return;
       var on = !root.sound.isEnabled();

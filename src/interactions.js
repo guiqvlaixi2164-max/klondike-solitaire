@@ -82,6 +82,7 @@
 
     // ---- click ----------------------------------------------------------
     board.addEventListener('click', function (e) {
+      if (app.autoRunning) return;
       var cardEl = e.target.closest('.card');
       var pileEl = e.target.closest('.pile');
 
@@ -115,6 +116,7 @@
 
     // ---- double-click: auto to foundation -------------------------------
     board.addEventListener('dblclick', function (e) {
+      if (app.autoRunning) return;
       var cardEl = e.target.closest('.card');
       if (!cardEl) return;
       var pile = cardEl.dataset.pile;
@@ -132,6 +134,7 @@
     // ---- drag and drop --------------------------------------------------
     var dragSrc = null;
     board.addEventListener('dragstart', function (e) {
+      if (app.autoRunning) { e.preventDefault(); return; }
       var cardEl = e.target.closest('.card');
       var src = sourceFromCard(cardEl);
       if (!src) { e.preventDefault(); return; }
