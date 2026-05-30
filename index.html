@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Klondike Solitaire</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header id="topbar">
+    <h1 class="title">Klondike</h1>
+    <div class="controls">
+      <button id="new-game" type="button">New Game</button>
+      <label class="difficulty">
+        Difficulty
+        <select id="difficulty">
+          <option value="easy">Easy</option>
+          <option value="hard">Hard</option>
+          <option value="expert">Expert</option>
+          <option value="master">Master</option>
+        </select>
+      </label>
+      <button id="undo" type="button" disabled>Undo</button>
+    </div>
+    <div class="stats">
+      <span class="stat">Moves: <strong id="moves">0</strong></span>
+      <span class="stat">Time: <strong id="time">0:00</strong></span>
+    </div>
+  </header>
+
+  <main id="board">
+    <section id="top-row">
+      <div class="pile stock" id="stock" data-pile="stock" data-col="0"></div>
+      <div class="pile waste" id="waste" data-pile="waste" data-col="0"></div>
+      <div class="spacer"></div>
+      <div class="foundations" id="foundations">
+        <div class="pile foundation" data-pile="foundation" data-col="0"></div>
+        <div class="pile foundation" data-pile="foundation" data-col="1"></div>
+        <div class="pile foundation" data-pile="foundation" data-col="2"></div>
+        <div class="pile foundation" data-pile="foundation" data-col="3"></div>
+      </div>
+    </section>
+
+    <section id="tableau" class="tableau">
+      <div class="pile column" data-pile="tableau" data-col="0"></div>
+      <div class="pile column" data-pile="tableau" data-col="1"></div>
+      <div class="pile column" data-pile="tableau" data-col="2"></div>
+      <div class="pile column" data-pile="tableau" data-col="3"></div>
+      <div class="pile column" data-pile="tableau" data-col="4"></div>
+      <div class="pile column" data-pile="tableau" data-col="5"></div>
+      <div class="pile column" data-pile="tableau" data-col="6"></div>
+    </section>
+  </main>
+
+  <div id="win-overlay" class="overlay hidden">
+    <div class="win-card">
+      <h2>You won! 🎉</h2>
+      <p id="win-stats"></p>
+      <button id="win-new-game" type="button">New Game</button>
+    </div>
+  </div>
+
+  <!-- Loaded in dependency order; no modules so file:// works (WORKFLOW.md §0) -->
+  <script src="src/namespace.js"></script>
+  <script src="src/engine.js"></script>
+  <script src="src/heuristic.js"></script>
+  <script src="src/deals.js"></script>
+  <script src="src/render.js"></script>
+  <script src="src/interactions.js"></script>
+  <script src="src/app.js"></script>
+</body>
+</html>
