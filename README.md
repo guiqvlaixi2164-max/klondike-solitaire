@@ -63,9 +63,10 @@ src/
   engine.js           # pure rules engine (no DOM) — also runs under Node for tests
   heuristic.js        # deal difficulty scoring (shared by game + generator)
   deals.js            # GENERATED pre-classified deal pool
-  render.js           # state -> DOM
+  sound.js            # synthesized Web Audio effects (flip/pick/move/collect)
+  render.js           # state -> DOM (pip layouts + chess court cards)
   interactions.js     # click / drag / double-click handlers
-  app.js              # controller: state, undo history, timer, top-bar wiring
+  app.js              # controller: state, undo history, timer, auto-collect, wiring
 tools/generate-deals.mjs  # offline Node script that writes src/deals.js
 test/                 # Node unit tests (engine + heuristic)
 ```

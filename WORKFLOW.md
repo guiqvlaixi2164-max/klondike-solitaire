@@ -351,6 +351,46 @@ the browser.
 
 ---
 
+## Post-v1 enhancements (Phase 9 — added after the initial build)
+
+Requested after v1 shipped. Each was implemented and verified in headless Chrome
+via the DevTools Protocol (rect-intersection, hit-testing with
+`document.elementFromPoint`, and dispatched event sequences), in addition to the
+Node unit tests staying green.
+
+### 9.1 Synthesized sound (`src/sound.js`, new)
+- Web Audio only (no asset files): `flip`, `pick`, `move`, `collect`. Loaded
+  before `interactions.js`/`app.js`; hooked in `app.commit` (per move type, plus
+  the secondary flip when a tableau move reveals a card) and in `interactions.js`
+  (pick on drag-start / select). Mute toggle wired in `app.js`.
+
+### 9.2 Realistic card faces (`render.js`, `styles.css`)
+- Per-rank pip position map (A–10) with lower-half pips rotated 180°; suit-colored
+  chess glyphs for J/Q/K. Card enlarged to 100×140; corner indices enlarged and
+  the pip field inset so pips never overlap the numbers.
+- **Verification:** measured every `.pip` rect against the `.corner` rects for all
+  ranks A–10 → zero intersections.
+
+### 9.3 Auto-Collect (`app.js`, `index.html`, `styles.css`)
+- `canAutoCollect` (stock empty + no face-down tableau cards) toggles a top-bar
+  button; `startAutoCollect` runs a `setInterval` that commits the lowest-rank
+  foundation move each tick (sound + render via `commit`), stopping on win. Input
+  is locked via an `autoRunning` flag honored by `interactions.js`.
+- **Verification:** built an all-known endgame, confirmed gradual progress
+  (44→…→52, not instant), win overlay, and `autoRunning` cleared.
+
+### 9.4 Foundation → tableau, and a hit-testing bug
+- The move was already supported by the engine + interaction layer. Real drags
+  failed because the `.foundation::after` ghost overlay intercepted pointer
+  events; fixed with `pointer-events: none`. A direct `.click()` test had masked
+  this — now verified with `elementFromPoint` and a hit-tested drag sequence.
+
+### 9.5 Next
+- Dynamic visual effects for flipping, dragging, and collecting (animated
+  transitions). Tracked as the next phase.
+
+---
+
 ## 9. Commands reference
 
 ```bash

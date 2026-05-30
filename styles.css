@@ -117,12 +117,14 @@ select {
   position: absolute; inset: 0;
   display: flex; align-items: center; justify-content: center;
   font-size: 42px; color: rgba(255,255,255,0.07);
+  pointer-events: none;   /* let drags/clicks reach the card on top */
 }
 .stock.empty-recycle::after {
   content: "↻";
   position: absolute; inset: 0;
   display: flex; align-items: center; justify-content: center;
   font-size: 40px; color: rgba(255,255,255,0.18);
+  pointer-events: none;
 }
 .stock { position: relative; }
 
@@ -151,19 +153,20 @@ select {
   position: absolute;
   font-weight: 700;
   line-height: 1;
-  font-size: 15px;
+  font-size: 19px;
   display: flex;
   flex-direction: column;
   align-items: center;
   white-space: nowrap;
 }
-.card .corner.tl { top: 5px; left: 5px; }
-.card .corner.br { bottom: 5px; right: 5px; transform: rotate(180deg); }
-.card .corner .glyph { font-size: 12px; margin-top: 1px; }
+.card .corner.tl { top: 5px; left: 6px; }
+.card .corner.br { bottom: 5px; right: 6px; transform: rotate(180deg); }
+.card .corner .glyph { font-size: 14px; margin-top: 1px; }
 
 /* pip field for number cards (A-10) — pips placed by % within an inset region.
-   The field is inset clear of the corner indices so pips never overlap them. */
-.card .pips { position: absolute; left: 30px; right: 30px; top: 32px; bottom: 32px; }
+   The field is inset clear of the (now larger) corner indices so pips never
+   overlap them. */
+.card .pips { position: absolute; left: 35px; right: 35px; top: 38px; bottom: 38px; }
 .card .pip {
   position: absolute;
   font-size: 19px;

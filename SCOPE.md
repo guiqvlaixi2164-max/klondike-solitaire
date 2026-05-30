@@ -199,7 +199,8 @@ difficulty. This matches casual draw-one Klondike.
 - Hints, auto-solve, or "no moves left" detection.
 - Draw-three mode or any other draw count.
 - A live per-deal solver at play time.
-- Multiplayer, accounts, sound (sound is optional/TBD, not committed).
+- Multiplayer, accounts. (Sound was originally optional/TBD — it has since been
+  implemented; see §11.)
 - Mobile-specific/touch optimization (desktop browser is the target; touch may
   work incidentally but isn't a guarantee).
 
@@ -231,4 +232,45 @@ difficulty. This matches casual draw-one Klondike.
 ---
 
 _All §9 items resolved (2026-05-30). Theme: dark. See `WORKFLOW.md` for the
-detailed build plan. Ready to start at step 1._
+detailed build plan._
+
+---
+
+## 11. Post-v1 enhancements (implemented)
+
+Added after the initial build, on request. All verified in headless Chrome (CDP)
+and committed.
+
+### 11.1 Sound effects (synthesized)
+- `src/sound.js` generates all audio via the Web Audio API — no asset files, so
+  it stays offline/reproducible. Effects: **flip** (card flick on draw and
+  auto-reveal), **pick** (lift on drag-start / select), **move** (place on
+  tableau), **collect** (chime to a foundation; double-chime on win).
+- A **🔊 / 🔇 mute toggle** lives in the top bar.
+
+### 11.2 Realistic card faces
+- **Pip layouts** for A–10 using the standard playing-card arrangement (e.g. 3 =
+  three centered pips; 7/8/10 use the classic offset rows), with bottom-half
+  pips rotated 180°. Ace = one large central pip.
+- **Court cards** use suit-colored Unicode chess glyphs: **J = ♞, Q = ♛, K = ♚**.
+- Card size is 100×140; corner indices are sized for readability and the pip
+  field is inset so pips never overlap the numbers (verified pixel-level).
+
+### 11.3 Auto-Collect
+- A top-bar **Auto-Collect** button appears only when every card is known: the
+  stock is empty and no tableau cards are face-down.
+- It sends the remaining cards to the foundations **one at a time, in rank
+  order**, each with the collect sound — it animates rather than jumping to the
+  win screen, and stops exactly on win. Input is locked while it runs.
+- Greedy foundation collection; always completes when the stock is empty and all
+  tableau cards are face-up. (Edge case: cards stranded in the waste in an
+  un-collectible order would stop the run early — not reachable in normal play.)
+
+### 11.4 Foundation → tableau
+- A collected card can be moved back down from a foundation onto the tableau
+  (drag or click-to-move), per the rules, enabling more advanced play. (Engine
+  support existed from v1; a `pointer-events: none` fix on the foundation "ghost"
+  overlay was needed so real drags/clicks reach the card.)
+
+### 11.5 Next up
+- Dynamic visual effects (animated card flip, drag, and collect transitions).
