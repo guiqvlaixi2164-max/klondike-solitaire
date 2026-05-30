@@ -169,7 +169,14 @@
       var dest = destFromPile(pileEl);
       if (dest) {
         var move = buildMove(dragSrc, dest);
-        if (move) app.commit(move);
+        if (move) {
+          // The card is already at the cursor — skip the slide so it doesn't
+          // appear to jump back to its origin and glide in.
+          if (engine.isLegalMove(app.getState(), move) && root.render.skipSlideOnce) {
+            root.render.skipSlideOnce();
+          }
+          app.commit(move);
+        }
       }
       dragSrc = null;
     });

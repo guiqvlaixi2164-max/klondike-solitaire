@@ -78,7 +78,7 @@
 
   function clear(node) { while (node.firstChild) node.removeChild(node.firstChild); }
 
-  function render(state) {
+  function build(state) {
     var engine = root.engine;
 
     // Stock
@@ -125,6 +125,71 @@
       colEl.style.minHeight = (offset + 140) + 'px';
     }
   }
+
+  // ---- animation (FLIP: First-Last-Invert-Play) --------------------------
+  // We keep the simple full re-render, then make cards glide from their previous
+  // screen position to the new one, flip when revealed, and glow when collected.
+  var ANIM_MS = 160;          // snappy
+  var skipSlide = false;      // set by interactions for drag-commits (no slide)
+
+  function animOn() {
+    return typeof window !== 'undefined' && window.matchMedia &&
+      !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  }
+  function cardId(node) { return node.dataset.suit + '-' + node.dataset.rank; }
+
+  function snapshot() {
+    var map = {}, nodes = document.querySelectorAll('#board .card');
+    for (var i = 0; i < nodes.length; i++) {
+      var n = nodes[i];
+      map[cardId(n)] = {
+        rect: n.getBoundingClientRect(),
+        up: !n.classList.contains('face-down'),
+        pile: n.dataset.pile
+      };
+    }
+    return map;
+  }
+  function once(node, cls, ms) {
+    node.classList.add(cls);
+    setTimeout(function () { node.classList.remove(cls); }, ms);
+  }
+  function slide(node, dx, dy) {
+    node.style.transition = 'none';
+    node.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
+    requestAnimationFrame(function () {
+      node.style.transition = 'transform ' + ANIM_MS + 'ms ease-out';
+      node.style.transform = '';
+    });
+  }
+  function replay(prev, doSlide) {
+    var nodes = document.querySelectorAll('#board .card');
+    for (var i = 0; i < nodes.length; i++) {
+      var node = nodes[i];
+      var old = prev[cardId(node)];
+      var nowUp = !node.classList.contains('face-down');
+      var nowPile = node.dataset.pile;
+      if (old) {
+        var now = node.getBoundingClientRect();
+        var dx = old.rect.left - now.left, dy = old.rect.top - now.top;
+        if (doSlide && (dx || dy)) slide(node, dx, dy);
+        if (!old.up && nowUp) once(node, 'flip-in', ANIM_MS + 40);            // tableau reveal
+        if (old.pile !== 'foundation' && nowPile === 'foundation') once(node, 'landed', 240);
+      } else if (nowUp && nowPile === 'waste') {
+        once(node, 'flip-in', ANIM_MS + 40);                                  // freshly drawn card
+      }
+    }
+  }
+
+  function render(state) {
+    var animate = animOn();
+    var prev = animate ? snapshot() : null;
+    var doSlide = !skipSlide;
+    skipSlide = false;
+    build(state);
+    if (animate) replay(prev, doSlide);
+  }
+  render.skipSlideOnce = function () { skipSlide = true; };
 
   root.render = render;
   if (typeof module !== 'undefined' && module.exports) { module.exports = { render: render }; }

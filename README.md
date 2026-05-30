@@ -36,7 +36,8 @@ That's it — the whole game runs from the local files over `file://`.
   chime) are synthesized in-browser via the Web Audio API — no audio files.
 
 Number cards show standard pip layouts; court cards use suit-colored chess
-glyphs (J = ♞, Q = ♛, K = ♚).
+glyphs (J = ♞, Q = ♛, K = ♚). Cards animate when moving, flipping, and being
+collected (snappy ~160ms); this respects your `prefers-reduced-motion` setting.
 
 Standard Klondike rules: build the four foundations up A→K by suit; build tableau
 columns down in alternating colors; only Kings go on empty columns. Win by moving

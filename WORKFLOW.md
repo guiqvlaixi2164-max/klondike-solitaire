@@ -385,9 +385,26 @@ Node unit tests staying green.
   events; fixed with `pointer-events: none`. A direct `.click()` test had masked
   this — now verified with `elementFromPoint` and a hit-tested drag sequence.
 
-### 9.5 Next
-- Dynamic visual effects for flipping, dragging, and collecting (animated
-  transitions). Tracked as the next phase.
+## Phase 10 — Dynamic card effects (implemented)
+
+Plan in `ANIMATION_PLAN.md`. Implemented entirely in `src/render.js` (+ CSS),
+with a one-line hook in `interactions.js`.
+
+- **FLIP slide:** `render()` snapshots every card's screen rect (keyed by
+  suit+rank) before the rebuild, then after rebuild inverts the delta as a
+  `transform` and transitions it to zero (~160ms ease-out) — cards glide to their
+  new spots with no engine/state changes.
+- **Reveal/draw flip:** a 3D `rotateY` (`.flip-in`) on a card whose `up` state
+  changed (tableau auto-reveal) or that freshly appears in the waste (draw).
+- **Collect glow:** a brief box-shadow pulse (`.landed`) when a card lands on a
+  foundation.
+- **Drag-commits skip the slide** via `render.skipSlideOnce()` set in the drop
+  handler (so the dragged card doesn't snap-back-and-glide).
+- **Reduced motion:** `animOn()` checks `prefers-reduced-motion` and a CSS
+  `@media` guard disables the keyframes.
+- **Verification (CDP):** moved cards settle at the exact destination with no
+  leftover `transform` (dx=0); flip-in fires on draw and reveal; landed fires on
+  collect; reduced-motion disables effects; zero exceptions. Unit tests green.
 
 ---
 

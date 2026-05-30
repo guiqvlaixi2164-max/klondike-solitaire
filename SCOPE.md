@@ -272,5 +272,12 @@ and committed.
   support existed from v1; a `pointer-events: none` fix on the foundation "ghost"
   overlay was needed so real drags/clicks reach the card.)
 
-### 11.5 Next up
-- Dynamic visual effects (animated card flip, drag, and collect transitions).
+### 11.5 Dynamic card effects (implemented)
+- Cards animate using the **FLIP technique** layered over the existing
+  re-render: a card glides (~160ms, snappy) from its previous screen position to
+  the new one, flips (3D `rotateY`) when revealed or drawn, and glows briefly
+  when collected to a foundation.
+- Drag-commits **suppress the slide** for the dragged card (it's already at the
+  cursor); reveals still animate.
+- Honors `prefers-reduced-motion: reduce` (animations off). No new dependencies.
+- See `ANIMATION_PLAN.md` for the design.
