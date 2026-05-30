@@ -1,0 +1,20 @@
+{
+  "name": "klondike-solitaire",
+  "version": "1.0.0",
+  "description": "Dark-themed browser Klondike Solitaire with adjustable difficulty and unlimited undo. Plays offline by opening index.html.",
+  "type": "commonjs",
+  "scripts": {
+    "test": "node --test",
+    "gen": "node tools/generate-deals.mjs",
+    "serve": "python -m http.server 8000"
+  },
+  "keywords": [
+    "klondike",
+    "solitaire",
+    "game",
+    "browser",
+    "vanilla-js"
+  ],
+  "license": "MIT",
+  "private": true
+}

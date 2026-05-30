@@ -1,0 +1,21 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: Run unit tests (no dependencies to install)
+        run: npm test
+      - name: Verify deal pool regenerates
+        run: |
+          npm run gen
+          git diff --exit-code src/deals.js || (echo "src/deals.js is out of date; run 'npm run gen' and commit." && exit 1)

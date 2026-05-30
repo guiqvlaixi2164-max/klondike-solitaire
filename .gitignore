@@ -1,0 +1,12 @@
+# Node
+node_modules/
+npm-debug.log*
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# NOTE: src/deals.js is intentionally committed (generated, but bundled so the
+# game works immediately on clone). Regenerate with `npm run gen`.
