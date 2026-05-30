@@ -97,6 +97,7 @@ select {
 
 /* ---- piles & slots ---- */
 .pile {
+  position: relative;        /* anchor absolutely-positioned cards to their slot */
   width: var(--card-w);
   min-height: var(--card-h);
   border-radius: var(--radius);
@@ -152,19 +153,38 @@ select {
   flex-direction: column;
   align-items: center;
 }
-.card .corner.tl { top: 7px; left: 8px; }
-.card .corner.br { bottom: 7px; right: 8px; transform: rotate(180deg); }
+.card .corner.tl { top: 6px; left: 7px; }
+.card .corner.br { bottom: 6px; right: 7px; transform: rotate(180deg); }
+.card .corner .glyph { font-size: 14px; margin-top: 1px; }
+
+/* pip field for number cards (A-10) — pips placed by % within an inset region */
+.card .pips { position: absolute; left: 18px; right: 18px; top: 16px; bottom: 16px; }
 .card .pip {
+  position: absolute;
+  font-size: 24px;
+  line-height: 1;
+  transform: translate(-50%, -50%);
+}
+.card .pip.flip { transform: translate(-50%, -50%) rotate(180deg); } /* lower-half pips */
+.card .pip.ace { font-size: 56px; }
+
+/* court cards (J/Q/K): suit-colored chess-piece glyph */
+.card .court {
   position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 46px;
+  font-size: 70px;
+  line-height: 1;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, .12);
 }
+
 .card.red { color: var(--card-red); }
 .card.black { color: var(--card-black); }
-.card.face-down .corner, .card.face-down .pip { display: none; }
+.card.face-down .corner,
+.card.face-down .pips,
+.card.face-down .court { display: none; }
 
 /* interaction states */
 .card.selected { box-shadow: 0 0 0 3px var(--selected), 0 4px 10px rgba(0,0,0,.5); }

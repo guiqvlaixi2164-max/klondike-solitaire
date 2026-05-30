@@ -96,7 +96,7 @@
 
       if (!selected) {
         var src = sourceFromCard(cardEl);
-        if (src) { selected = src; highlight(src); }
+        if (src) { selected = src; highlight(src); if (root.sound) root.sound.pick(); }
         return;
       }
 
@@ -110,7 +110,7 @@
       // Otherwise: switch selection to the newly clicked card, or clear.
       clearSelection();
       var reSrc = sourceFromCard(cardEl);
-      if (reSrc) { selected = reSrc; highlight(reSrc); }
+      if (reSrc) { selected = reSrc; highlight(reSrc); if (root.sound) root.sound.pick(); }
     });
 
     // ---- double-click: auto to foundation -------------------------------
@@ -138,6 +138,7 @@
       dragSrc = src;
       clearSelection();
       cardEl.classList.add('dragging');
+      if (root.sound) root.sound.pick();
       if (e.dataTransfer) {
         e.dataTransfer.effectAllowed = 'move';
         e.dataTransfer.setData('text/plain', 'card'); // Firefox needs data set

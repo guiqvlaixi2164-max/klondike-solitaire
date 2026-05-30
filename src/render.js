@@ -6,6 +6,23 @@
 
   var SUIT_GLYPH = ['♣', '♦', '♥', '♠']; // ♣ ♦ ♥ ♠
   var RANK_LABEL = ['', 'A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+  var COURT_GLYPH = { 11: '♞', 12: '♛', 13: '♚' }; // J = knight, Q = queen, K = king
+
+  // Standard pip positions per rank. [x, y] in 0..1 within the inset pip field
+  // (x: 0=left 0.5=center 1=right, y: 0=top 1=bottom). Pips with y>0.5 render
+  // rotated 180°, exactly like a real deck. Ace is one large central pip.
+  var PIP_LAYOUT = {
+    1:  [[0.5, 0.5]],
+    2:  [[0.5, 0], [0.5, 1]],
+    3:  [[0.5, 0], [0.5, 0.5], [0.5, 1]],
+    4:  [[0, 0], [1, 0], [0, 1], [1, 1]],
+    5:  [[0, 0], [1, 0], [0.5, 0.5], [0, 1], [1, 1]],
+    6:  [[0, 0], [1, 0], [0, 0.5], [1, 0.5], [0, 1], [1, 1]],
+    7:  [[0, 0], [1, 0], [0.5, 0.25], [0, 0.5], [1, 0.5], [0, 1], [1, 1]],
+    8:  [[0, 0], [1, 0], [0.5, 0.25], [0, 0.5], [1, 0.5], [0.5, 0.75], [0, 1], [1, 1]],
+    9:  [[0, 0], [1, 0], [0, 0.333], [1, 0.333], [0.5, 0.5], [0, 0.667], [1, 0.667], [0, 1], [1, 1]],
+    10: [[0, 0], [1, 0], [0.5, 0.1667], [0, 0.333], [1, 0.333], [0, 0.667], [1, 0.667], [0.5, 0.8333], [0, 1], [1, 1]]
+  };
 
   function el(tag, cls) {
     var e = document.createElement(tag);
@@ -30,15 +47,32 @@
     var label = RANK_LABEL[card.r];
     var glyph = SUIT_GLYPH[card.s];
 
+    var corners = '<span class="glyph">' + glyph + '</span>';
     var tl = el('div', 'corner tl');
-    tl.innerHTML = label + '<span>' + glyph + '</span>';
+    tl.innerHTML = label + corners;
     var br = el('div', 'corner br');
-    br.innerHTML = label + '<span>' + glyph + '</span>';
-    var pip = el('div', 'pip');
-    pip.textContent = glyph;
+    br.innerHTML = label + corners;
     c.appendChild(tl);
     c.appendChild(br);
-    c.appendChild(pip);
+
+    if (card.r >= 11) {
+      var court = el('div', 'court');
+      court.textContent = COURT_GLYPH[card.r];
+      c.appendChild(court);
+    } else {
+      var layout = PIP_LAYOUT[card.r];
+      var pips = el('div', 'pips');
+      for (var i = 0; i < layout.length; i++) {
+        var pos = layout[i];
+        var cls = 'pip' + (card.r === 1 ? ' ace' : '') + (pos[1] > 0.5 ? ' flip' : '');
+        var pip = el('div', cls);
+        pip.style.left = (pos[0] * 100) + '%';
+        pip.style.top = (pos[1] * 100) + '%';
+        pip.textContent = glyph;
+        pips.appendChild(pip);
+      }
+      c.appendChild(pips);
+    }
     return c;
   }
 

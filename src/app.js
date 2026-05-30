@@ -62,11 +62,33 @@
     if (engine.isWin(app.state)) onWin();
   }
 
+  // Pick the right sound(s) for a committed move, including the secondary
+  // "flip" when a tableau move exposes a face-down card.
+  function playMoveSounds(prev, move, next) {
+    var s = root.sound;
+    if (!s) return;
+    var M = engine.MOVES;
+    if (move.type === M.DRAW) s.flip();
+    else if (move.type === M.WASTE_TO_FOUNDATION || move.type === M.TABLEAU_TO_FOUNDATION) s.collect();
+    else s.move();
+
+    if (move.type === M.TABLEAU_TO_TABLEAU || move.type === M.TABLEAU_TO_FOUNDATION) {
+      var col = next.tableau[move.from];
+      if (col.length) {
+        var i = col.length - 1;
+        var before = prev.tableau[move.from][i];
+        if (col[i].up && before && !before.up) setTimeout(function () { s.flip(); }, 90);
+      }
+    }
+  }
+
   // Attempt a move. Returns true if applied, false if illegal.
   function commit(move) {
     if (!engine.isLegalMove(app.state, move)) return false;
-    app.history.push(app.state);          // states are immutable, safe to keep
-    app.state = engine.applyMove(app.state, move);
+    var prev = app.state;
+    app.history.push(prev);               // states are immutable, safe to keep
+    app.state = engine.applyMove(prev, move);
+    playMoveSounds(prev, move, app.state);
     startTimerIfNeeded();
     afterChange();
     return true;
@@ -92,6 +114,7 @@
 
   function onWin() {
     stopTimer();
+    if (root.sound) { root.sound.collect(); setTimeout(function () { root.sound.collect(); }, 160); }
     var t = document.getElementById('time').textContent;
     document.getElementById('win-stats').textContent =
       'Solved in ' + app.state.moves + ' moves · ' + t;
@@ -112,6 +135,13 @@
       newGame(document.getElementById('difficulty').value);
     });
     document.getElementById('undo').addEventListener('click', undo);
+    document.getElementById('sound-toggle').addEventListener('click', function (e) {
+      if (!root.sound) return;
+      var on = !root.sound.isEnabled();
+      root.sound.setEnabled(on);
+      e.currentTarget.textContent = on ? '🔊' : '🔇';
+      if (on) root.sound.pick();
+    });
     document.getElementById('difficulty').addEventListener('change', function (e) {
       app.difficulty = e.target.value; // applies on next New Game
     });

@@ -3,7 +3,7 @@
 A dark-themed, browser-based Klondike Solitaire you play locally — no install, no
 server, no internet. One-card draw, unlimited undo, and four difficulty levels.
 
-![Board preview](board_preview.png)
+![Board preview](cards_preview.png)
 
 ## Play
 
@@ -26,6 +26,11 @@ That's it — the whole game runs from the local files over `file://`.
 - **Undo:** click **Undo** (or press **Ctrl/Cmd+Z**). Unlimited within a match.
 - **New Game / Difficulty:** pick a level and press **New Game**. Changing the
   difficulty applies on the next New Game.
+- **Sound:** toggle the 🔊 / 🔇 button. Effects (card flick, place, foundation
+  chime) are synthesized in-browser via the Web Audio API — no audio files.
+
+Number cards show standard pip layouts; court cards use suit-colored chess
+glyphs (J = ♞, Q = ♛, K = ♚).
 
 Standard Klondike rules: build the four foundations up A→K by suit; build tableau
 columns down in alternating colors; only Kings go on empty columns. Win by moving
