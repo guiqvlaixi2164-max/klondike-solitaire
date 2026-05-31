@@ -6,7 +6,7 @@
 // fails loudly if any deal is not solver-winnable or the file is malformed.
 
 import engine from '../src/engine.js';
-import solver from './solver.mjs';
+import solver from '../src/solver.js';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';

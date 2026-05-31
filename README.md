@@ -31,6 +31,10 @@ That's it — the whole game runs from the local files over `file://`.
   cards are face-down), an **Auto-Collect** button appears next to Undo. Click it
   to watch the remaining cards fly to the foundations one by one, in rank order,
   each with its collect sound — it does not skip straight to the win screen.
+- **Hint:** click **Hint** (limited to 3 per game) to highlight a good move. The
+  built-in solver knows the full deal, so the hint is the first move of an actual
+  winning line from your current position — no matter how you got there. If the
+  position can no longer be won, it falls back to suggesting a stock draw.
 - **Undo:** click **Undo** (or press **Ctrl/Cmd+Z**). Unlimited within a match.
 - **New Game / Difficulty:** pick a level and press **New Game**. Changing the
   difficulty applies on the next New Game.
@@ -70,13 +74,14 @@ src/
   namespace.js        # window.Solitaire global
   engine.js           # pure rules engine (no DOM) — also runs under Node for tests
   heuristic.js        # deal difficulty scoring (legacy estimate; kept for reference)
+  solver.js           # Klondike solver — winnability check (Node) + live Hint (browser)
   deals.js            # GENERATED solver-verified-winnable deal pool
   sound.js            # synthesized Web Audio effects (flip/pick/move/collect)
   render.js           # state -> DOM (pip layouts + chess court cards)
   interactions.js     # click / drag / double-click handlers
-  app.js              # controller: state, undo history, timer, auto-collect, wiring
-tools/solver.mjs          # offline Klondike solver (verifies winnability)
+  app.js              # controller: state, undo history, timer, hint, auto-collect, wiring
 tools/generate-deals.mjs  # offline Node script that writes src/deals.js
+tools/verify-deals.mjs    # re-solves the committed pool (CI winnability check)
 test/                 # Node unit tests (engine + heuristic + solver)
 ```
 

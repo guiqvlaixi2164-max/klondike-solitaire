@@ -14,8 +14,11 @@
     startTime: 0,
     running: false,
     autoRunning: false,   // true while Auto-Collect is animating
-    autoTimer: null
+    autoTimer: null,
+    hintsLeft: 0          // remaining hints this game (issue #2)
   };
+
+  var HINTS_PER_GAME = 3;
 
   // ---- deal selection ----------------------------------------------------
   // Use the bundled pre-classified pool when present; otherwise fall back to a
@@ -95,8 +98,10 @@
     app.autoRunning = true;
     document.getElementById('new-game').disabled = true;
     document.getElementById('difficulty').disabled = true;
+    clearHint();
     updateUndoBtn();
     updateAutoBtn();
+    updateHintBtn();
     // Step one card at a time so the player sees them collected in order.
     app.autoTimer = setInterval(function () {
       var m = nextAutoMove(app.state);
@@ -114,14 +119,88 @@
     document.getElementById('difficulty').disabled = false;
     updateUndoBtn();
     updateAutoBtn();
+    updateHintBtn();
+  }
+
+  // ---- hint (issue #2) ---------------------------------------------------
+  // A limited number of hints per game. The local solver (src/solver.js) knows
+  // the full deal, so it returns the first move of an actual winning line from
+  // the CURRENT position — the best move regardless of what the player did. If
+  // the position can't be won within the budget (e.g. the player dead-ended),
+  // it falls back to "flip the next card from the stock".
+  function foundationPileEl(s) { return document.querySelector('#foundations .foundation[data-col="' + s + '"]'); }
+  function tableauPileEl(col) { return document.querySelector('#tableau .column[data-col="' + col + '"]'); }
+
+  function clearHint() {
+    if (app.hintTimer) { clearTimeout(app.hintTimer); app.hintTimer = null; }
+    var nodes = document.querySelectorAll('.hint, .hint-target');
+    for (var i = 0; i < nodes.length; i++) {
+      nodes[i].classList.remove('hint');
+      nodes[i].classList.remove('hint-target');
+    }
+  }
+
+  // Add the highlight classes for a move onto the live DOM (after a render).
+  function highlightHintMove(move) {
+    var M = engine.MOVES, st = app.state, srcEls = [], target = null, wc, col, idx, cards, j;
+    switch (move.type) {
+      case M.DRAW:
+      case M.RECYCLE:
+        srcEls.push(document.getElementById('stock'));
+        break;
+      case M.WASTE_TO_FOUNDATION:
+        wc = document.querySelector('.waste .card'); if (wc) srcEls.push(wc);
+        target = foundationPileEl(engine.top(st.waste).s);
+        break;
+      case M.WASTE_TO_TABLEAU:
+        wc = document.querySelector('.waste .card'); if (wc) srcEls.push(wc);
+        target = tableauPileEl(move.to);
+        break;
+      case M.TABLEAU_TO_FOUNDATION:
+        col = st.tableau[move.from]; idx = col.length - 1;
+        cards = document.querySelectorAll('#tableau .column[data-col="' + move.from + '"] .card');
+        for (j = 0; j < cards.length; j++) if (+cards[j].dataset.index === idx) srcEls.push(cards[j]);
+        target = foundationPileEl(col[idx].s);
+        break;
+      case M.TABLEAU_TO_TABLEAU:
+        cards = document.querySelectorAll('#tableau .column[data-col="' + move.from + '"] .card');
+        for (j = 0; j < cards.length; j++) if (+cards[j].dataset.index >= move.index) srcEls.push(cards[j]);
+        target = tableauPileEl(move.to);
+        break;
+    }
+    for (var k = 0; k < srcEls.length; k++) if (srcEls[k]) srcEls[k].classList.add('hint');
+    if (target) target.classList.add('hint-target');
+    app.hintTimer = setTimeout(clearHint, 2800);
+  }
+
+  function updateHintBtn() {
+    var btn = document.getElementById('hint');
+    if (!btn) return;
+    btn.disabled = app.autoRunning || app.hintsLeft <= 0 || !app.state || engine.isWin(app.state);
+    btn.textContent = app.hintsLeft > 0 ? 'Hint (' + app.hintsLeft + ')' : 'No Hints';
+  }
+
+  function showHint() {
+    if (app.autoRunning || app.hintsLeft <= 0 || engine.isWin(app.state)) return;
+    var solver = root.solver;
+    if (!solver) return;
+    var move = solver.hint(app.state);
+    if (!move) return; // nothing left to suggest (e.g. stock and waste both empty)
+    clearHint();
+    highlightHintMove(move);
+    if (root.sound) root.sound.pick();
+    app.hintsLeft--;
+    updateHintBtn();
   }
 
   // ---- core actions ------------------------------------------------------
   function afterChange() {
+    clearHint();
     root.render(app.state);
     updateStats();
     updateUndoBtn();
     updateAutoBtn();
+    updateHintBtn();
     if (engine.isWin(app.state)) onWin();
   }
 
@@ -170,6 +249,7 @@
     var order = dealForDifficulty(app.difficulty);
     app.state = engine.dealFromOrder(order);
     app.history = [];
+    app.hintsLeft = HINTS_PER_GAME;
     stopTimer();
     app.startTime = 0;
     document.getElementById('time').textContent = '0:00';
@@ -206,6 +286,7 @@
       newGame(document.getElementById('difficulty').value);
     });
     document.getElementById('undo').addEventListener('click', undo);
+    document.getElementById('hint').addEventListener('click', showHint);
     document.getElementById('auto-collect').addEventListener('click', startAutoCollect);
     document.getElementById('sound-toggle').addEventListener('click', function (e) {
       if (!root.sound) return;

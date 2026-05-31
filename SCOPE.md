@@ -25,7 +25,7 @@ draw, and unlimited undo per match.
 | Undo | **Unlimited undo** within a match. Each click reverts exactly one prior move. |
 | Difficulty | **Four levels** — easy, hard, expert, master. Every bundled deal is **offline-solver-verified winnable**; the levels grade deals by the solver's **search effort** (no live solver at play time). |
 | Deal source | **Pre-generated, pre-classified deal pool** bundled as a data file. New Game picks a random deal from the selected difficulty bucket. Instant, fully offline. |
-| Hints | **None.** No hint system of any kind. |
+| Hints | **Limited solver hints** (issue #2) — a Hint button suggests the best next move, capped per game. (Originally none; added post-v1, see §11.7.) |
 | Stats | **Move counter + elapsed timer** shown per match. |
 | Win handling | **Win detection** + a visible celebration + a **New Game** button. |
 | Auto-move | **Double-click a card** to auto-send it to a legal foundation. |
@@ -201,9 +201,9 @@ difficulty. This matches casual draw-one Klondike.
 ## 8. Explicitly out of scope
 
 - Point scoring / leaderboards / high-score persistence.
-- Hints, auto-solve, or "no moves left" detection.
+- Auto-solve, or "no moves left" detection. (Limited solver *hints* were
+  originally out of scope but have since been added on request — see §11.7.)
 - Draw-three mode or any other draw count.
-- A live per-deal solver at play time.
 - Multiplayer, accounts. (Sound was originally optional/TBD — it has since been
   implemented; see §11.)
 - Mobile-specific/touch optimization (desktop browser is the target; touch may
@@ -296,3 +296,20 @@ and committed.
 - Canvas-drawn simplified card faces (rounded rect + rank/suit, suit-colored) from
   the cards' suit/rank — no images. Honors `prefers-reduced-motion` (skips to the
   overlay). New Game tears the canvas down.
+
+### 11.7 Hint button (implemented — issue #2)
+- A top-bar **Hint** button, **limited to 3 per game** (resets on New Game,
+  disabled when used up / during Auto-Collect / after a win).
+- Uses the same solver that guarantees winnable deals (`src/solver.js`, now
+  shared by Node and the browser). It runs from the **current** position and
+  highlights the **first move of an actual winning line** — the best move
+  regardless of the moves the player already made. The solver knows the full
+  deal, so the hint can reason about face-down cards.
+- The suggested move's source card(s) pulse and the destination pile is outlined
+  (distinct purple, separate from the yellow click-selection). Honors
+  `prefers-reduced-motion`.
+- **Fallback (per the issue):** if the position can't be won within the solver's
+  live node budget (e.g. the player has played into a dead end), the hint falls
+  back to "flip the next card from the stock" (draw, or recycle when empty).
+- This is the one place a solver runs **at play time**; deal generation/
+  verification remain offline (§4).

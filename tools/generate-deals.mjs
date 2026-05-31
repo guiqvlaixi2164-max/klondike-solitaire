@@ -16,7 +16,7 @@
 // can verify src/deals.js is up to date with `git diff --exit-code`.
 
 import engine from '../src/engine.js';
-import solver from './solver.mjs';
+import solver from '../src/solver.js';
 import { writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';

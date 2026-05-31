@@ -16,6 +16,7 @@
   --slot-border: rgba(255, 255, 255, 0.16);
   --selected: #ffd54a;
   --drop: #6ee7a8;
+  --hint: #c98aff;            /* hint highlight (distinct from select/drop) */
 
   --card-w: 100px;
   --card-h: 140px;
@@ -68,6 +69,7 @@ button:disabled { opacity: .4; cursor: default; }
 
 button[hidden] { display: none; }
 button.auto { background: var(--drop); color: #04331f; }
+button.hint-btn { background: var(--hint); color: #1c0838; }
 
 .difficulty { color: var(--muted); font-size: 14px; display: flex; align-items: center; gap: 6px; }
 select {
@@ -199,6 +201,18 @@ select {
 .pile.drop-target { outline-color: var(--drop); outline-style: solid; outline-width: 2.5px; }
 .card.drop-target { box-shadow: 0 0 0 3px var(--drop); }
 .card.dragging { opacity: .55; }
+
+/* hint: pulse the suggested move's source card(s) and destination pile */
+.card.hint, .pile.hint {
+  box-shadow: 0 0 0 3px var(--hint), 0 0 16px 4px rgba(201, 138, 255, .65);
+  animation: hintPulse 850ms ease-in-out 3;
+  z-index: 5;
+}
+.pile.hint-target { outline: 3px solid var(--hint); outline-offset: 0; }
+@keyframes hintPulse {
+  0%, 100% { box-shadow: 0 0 0 3px var(--hint), 0 0 6px 1px rgba(201, 138, 255, .4); }
+  50%      { box-shadow: 0 0 0 3px var(--hint), 0 0 20px 6px rgba(201, 138, 255, .85); }
+}
 @keyframes shake {
   0%,100% { transform: translateX(0); }
   25% { transform: translateX(-5px); }
@@ -220,7 +234,7 @@ select {
 .card.landed { animation: cardLand 220ms ease-out; }
 
 @media (prefers-reduced-motion: reduce) {
-  .card.flip-in, .card.landed { animation: none; }
+  .card.flip-in, .card.landed, .card.hint, .pile.hint { animation: none; }
 }
 
 /* ---- win cascade canvas (below the stats overlay) ---- */
