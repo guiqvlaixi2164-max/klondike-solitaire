@@ -52,14 +52,14 @@ all 52 cards to the foundations.
 
 ## Difficulty
 
-Difficulty does not change the rules — it changes **which deal you get**. Deals
-are pre-classified by a difficulty **heuristic** (how deeply low cards are buried,
-color clustering, opening mobility, aces stuck in the stock). The four levels —
-**easy / hard / expert / master** — draw from progressively harder buckets in a
-bundled deal pool (`src/deals.js`).
-
-This is a heuristic estimate, not a solver guarantee: easy deals are
-statistically easier, not provably winnable. See [`SCOPE.md`](./SCOPE.md) §4.
+Difficulty does not change the rules — it changes **which deal you get**. Every
+bundled deal is **solver-verified winnable**: an offline solver
+(`tools/solver.mjs`) actually wins each deal before it is added to the pool, so
+no game starts in an unwinnable position. The four levels —
+**easy / hard / expert / master** — are graded by the solver's **search effort**
+(how many states it had to explore to find a win): trivial deals land in *easy*,
+deeply tangled — but still winnable — deals in *master*. See
+[`SCOPE.md`](./SCOPE.md) §4.
 
 ## Project layout
 
@@ -69,14 +69,15 @@ styles.css            # dark theme + card visuals
 src/
   namespace.js        # window.Solitaire global
   engine.js           # pure rules engine (no DOM) — also runs under Node for tests
-  heuristic.js        # deal difficulty scoring (shared by game + generator)
-  deals.js            # GENERATED pre-classified deal pool
+  heuristic.js        # deal difficulty scoring (legacy estimate; kept for reference)
+  deals.js            # GENERATED solver-verified-winnable deal pool
   sound.js            # synthesized Web Audio effects (flip/pick/move/collect)
   render.js           # state -> DOM (pip layouts + chess court cards)
   interactions.js     # click / drag / double-click handlers
   app.js              # controller: state, undo history, timer, auto-collect, wiring
+tools/solver.mjs          # offline Klondike solver (verifies winnability)
 tools/generate-deals.mjs  # offline Node script that writes src/deals.js
-test/                 # Node unit tests (engine + heuristic)
+test/                 # Node unit tests (engine + heuristic + solver)
 ```
 
 ## Development
@@ -85,20 +86,22 @@ Requires Node.js (used only for tests and regenerating deals — not for playing
 There are **no third-party dependencies**; tests use Node's built-in test runner.
 
 ```bash
-npm test       # run engine + heuristic unit tests
-npm run gen    # regenerate src/deals.js (deterministic, seeded)
+npm test       # run engine + heuristic + solver unit tests
+npm run gen    # regenerate src/deals.js (deterministic; runs the solver — minutes)
 npm run serve  # serve over http://localhost:8000
 ```
 
 `src/deals.js` is generated but **committed** so the game works immediately on
-clone. CI (`.github/workflows/ci.yml`) runs the tests and verifies `deals.js` is
-up to date with the generator.
+clone. CI (`.github/workflows/ci.yml`) runs the tests and `npm run verify`,
+which re-solves every bundled deal to prove it is winnable.
 
 ## Reproducibility
 
-Clone and play — no build step. To regenerate the deal pool from scratch,
-`npm run gen` produces byte-for-byte identical output (seeded RNG, no
-timestamps), which is what CI checks.
+Clone and play — no build step. `npm run gen` regenerates the deal pool from
+scratch (seeded RNG + a deterministic solver, so the output is byte-for-byte
+identical on any platform); it takes a few minutes because it solves each
+candidate. `npm run verify` is the fast check CI uses — it re-solves only the
+committed pool.
 
 ## License
 

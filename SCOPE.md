@@ -23,7 +23,7 @@ draw, and unlimited undo per match.
 | Platform | **Browser** — plain HTML + CSS + JavaScript (no framework, no build step). Open a single file to play. |
 | Draw mode | **Draw one card** at a time from the stock. (Fixed; not configurable.) |
 | Undo | **Unlimited undo** within a match. Each click reverts exactly one prior move. |
-| Difficulty | **Four levels** — easy, hard, expert, master — defined by **heuristic difficulty of the deal** (no live solver). |
+| Difficulty | **Four levels** — easy, hard, expert, master. Every bundled deal is **offline-solver-verified winnable**; the levels grade deals by the solver's **search effort** (no live solver at play time). |
 | Deal source | **Pre-generated, pre-classified deal pool** bundled as a data file. New Game picks a random deal from the selected difficulty bucket. Instant, fully offline. |
 | Hints | **None.** No hint system of any kind. |
 | Stats | **Move counter + elapsed timer** shown per match. |
@@ -82,41 +82,46 @@ draw, and unlimited undo per match.
 
 ---
 
-## 4. Difficulty model (heuristic, no solver)
+## 4. Difficulty model (solver-verified, offline)
 
 Difficulty does **not** change the rules — every level plays identical Klondike
 with one-card draw. Difficulty only selects **which deals you are given**.
 
+> **Update (issue #1):** the model below replaces the original heuristic-only
+> approach. Deals are no longer merely *estimated* easy/hard — they are
+> **proven winnable** by an offline solver, which closes the "unsolvable opening
+> layout" hole. The old heuristic (`src/heuristic.js`) is retained for reference
+> and its tests, but no longer decides the buckets.
+
 ### 4.1 How deals are classified
 
-A pre-generation script creates a large batch of random valid deals and scores
-each with a **difficulty heuristic** (a single number). Higher score = harder.
-Proposed heuristic inputs (final weights tuned during implementation):
+`tools/generate-deals.mjs` scans deterministic seeded shuffles and runs the
+offline solver (`tools/solver.mjs`) on each. A deal is kept **only if the solver
+actually wins it** within a fixed node budget; deals it cannot crack are
+discarded. The solver advances by depth-first search with a transposition set
+and safe-foundation autoplay, so a kept deal comes with a real, verified win.
 
-- **Buried low cards:** how deep the Aces and 2s sit under face-down cards
-  (deeper = harder).
-- **Buried per-suit progression:** how scattered/buried the early ranks of each
-  suit are.
-- **Color clustering in tableau:** runs of same-color cards that block sequencing.
-- **Top-card workability:** how many immediately useful moves exist at the start.
-- **Stock dependence:** how much progress requires digging through the stock.
+The solver also reports its **search effort** — the number of game states it had
+to expand to find a win. This is the difficulty signal: trivial deals fall in a
+few hundred states, deeply tangled ones take tens of thousands. The pool of
+solvable deals is sorted by effort and split into four equal quartiles.
 
-> NOTE: This is an **estimate**, not a guarantee. "Easy" deals are statistically
-> easier, not provably winnable; "master" deals are statistically brutal, not
-> provably unwinnable. This trade-off was chosen deliberately for speed and
-> simplicity over a CPU-heavy solver.
+> NOTE: The solver omits "pull a card back off a foundation" moves and bounds
+> its search by a node budget, so it may *fail to win* some deals that are in
+> fact winnable. That only ever causes such deals to be **discarded** — it can
+> never cause an unwinnable deal to be accepted. Every bundled deal is a genuine
+> win. (No solver runs at play time; this is all generation-time only — see §8.)
 
 ### 4.2 Buckets
 
-| Level | Meaning (heuristic percentile band) |
-|-------|--------------------------------------|
-| Easy | Lowest-difficulty deals (open layouts, low cards near the top). |
-| Hard | Below-average difficulty. |
-| Expert | Above-average difficulty. |
-| Master | Highest-difficulty deals (deeply buried low cards, heavy clustering). |
+| Level | Meaning (solver-effort quartile) |
+|-------|-----------------------------------|
+| Easy | Won with the least search — open, forgiving layouts. |
+| Hard | Below-median search effort. |
+| Expert | Above-median search effort. |
+| Master | Won with the most search — deeply tangled, but **still winnable**. |
 
-Exact percentile cut points and how many deals per bucket are bundled are
-**OPEN** (see §9), but a starting target is ~100–250 deals per bucket.
+~100 deals per bucket are bundled (`PER_BUCKET` in the generator).
 
 ### 4.3 Deal data format
 

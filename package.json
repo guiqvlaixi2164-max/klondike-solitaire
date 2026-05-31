@@ -6,6 +6,7 @@
   "scripts": {
     "test": "node --test",
     "gen": "node tools/generate-deals.mjs",
+    "verify": "node tools/verify-deals.mjs",
     "serve": "python -m http.server 8000"
   },
   "keywords": [

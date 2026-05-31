@@ -15,7 +15,5 @@ jobs:
           node-version: "24"
       - name: Run unit tests (no dependencies to install)
         run: npm test
-      - name: Verify deal pool regenerates
-        run: |
-          npm run gen
-          git diff --exit-code src/deals.js || (echo "src/deals.js is out of date; run 'npm run gen' and commit." && exit 1)
+      - name: Verify every bundled deal is winnable (issue #1)
+        run: npm run verify
