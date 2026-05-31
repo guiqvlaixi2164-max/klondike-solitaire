@@ -57,13 +57,17 @@ all 52 cards to the foundations.
 ## Difficulty
 
 Difficulty does not change the rules — it changes **which deal you get**. Every
-bundled deal is **solver-verified winnable**: an offline solver
-(`tools/solver.mjs`) actually wins each deal before it is added to the pool, so
-no game starts in an unwinnable position. The four levels —
-**easy / hard / expert / master** — are graded by the solver's **search effort**
-(how many states it had to explore to find a win): trivial deals land in *easy*,
-deeply tangled — but still winnable — deals in *master*. See
-[`SCOPE.md`](./SCOPE.md) §4.
+bundled deal is **solver-verified winnable** (`src/solver.js` wins it before it
+is added to the pool), so no game starts in an unwinnable position.
+
+The four levels — **easy / hard / expert / master** — are graded by the
+**casual-player win rate**: a "reasonable but imperfect" auto-player
+(`tools/casual-player.mjs`) plays each deal many times, and the fraction it wins
+is the difficulty signal. This tracks *felt* difficulty: an **easy** deal is
+forgiving (you can play loosely and still win); a **master** deal is one a casual
+player almost always loses — yet the solver proves it *is* winnable with precise
+play. (This replaced an earlier "solver search effort" metric, which couldn't
+tell easy and expert apart — see [`SCOPE.md`](./SCOPE.md) §4.)
 
 ## Project layout
 
@@ -80,9 +84,10 @@ src/
   render.js           # state -> DOM (pip layouts + chess court cards)
   interactions.js     # click / drag / double-click handlers
   app.js              # controller: state, undo history, timer, hint, auto-collect, wiring
+tools/casual-player.mjs   # imperfect auto-player; win rate = difficulty signal
 tools/generate-deals.mjs  # offline Node script that writes src/deals.js
 tools/verify-deals.mjs    # re-solves the committed pool (CI winnability check)
-test/                 # Node unit tests (engine + heuristic + solver)
+test/                 # Node unit tests (engine + heuristic + solver + casual-player)
 ```
 
 ## Development

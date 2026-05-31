@@ -23,7 +23,7 @@ draw, and unlimited undo per match.
 | Platform | **Browser** — plain HTML + CSS + JavaScript (no framework, no build step). Open a single file to play. |
 | Draw mode | **Draw one card** at a time from the stock. (Fixed; not configurable.) |
 | Undo | **Unlimited undo** within a match. Each click reverts exactly one prior move. |
-| Difficulty | **Four levels** — easy, hard, expert, master. Every bundled deal is **offline-solver-verified winnable**; the levels grade deals by the solver's **search effort** (no live solver at play time). |
+| Difficulty | **Four levels** — easy, hard, expert, master. Every bundled deal is **offline-solver-verified winnable**; the levels grade deals by **casual-player win rate** (how often an imperfect auto-player wins). See §4. |
 | Deal source | **Pre-generated, pre-classified deal pool** bundled as a data file. New Game picks a random deal from the selected difficulty bucket. Instant, fully offline. |
 | Hints | **Limited solver hints** (issue #2) — a Hint button suggests the best next move, capped per game. (Originally none; added post-v1, see §11.7.) |
 | Stats | **Move counter + elapsed timer** shown per match. |
@@ -82,46 +82,61 @@ draw, and unlimited undo per match.
 
 ---
 
-## 4. Difficulty model (solver-verified, offline)
+## 4. Difficulty model (solver-verified winnability + casual-player difficulty)
 
 Difficulty does **not** change the rules — every level plays identical Klondike
 with one-card draw. Difficulty only selects **which deals you are given**.
 
-> **Update (issue #1):** the model below replaces the original heuristic-only
-> approach. Deals are no longer merely *estimated* easy/hard — they are
-> **proven winnable** by an offline solver, which closes the "unsolvable opening
-> layout" hole. The old heuristic (`src/heuristic.js`) is retained for reference
-> and its tests, but no longer decides the buckets.
+> **History.** v1 estimated difficulty with a heuristic only (no winnability
+> guarantee). **Issue #1** added the offline solver so every deal is *proven
+> winnable*, and graded difficulty by the solver's **search effort** (node
+> count). **Issue #3** replaced that grading: search effort turned out to be
+> near-constant for the ~75% of deals that are trivially forgiving, so easy /
+> hard / expert were indistinguishable in play. Difficulty is now the
+> **casual-player win rate** (below). `src/heuristic.js` is retained for its
+> tests but no longer used.
 
 ### 4.1 How deals are classified
 
-`tools/generate-deals.mjs` scans deterministic seeded shuffles and runs the
-offline solver (`tools/solver.mjs`) on each. A deal is kept **only if the solver
-actually wins it** within a fixed node budget; deals it cannot crack are
-discarded. The solver advances by depth-first search with a transposition set
-and safe-foundation autoplay, so a kept deal comes with a real, verified win.
+`tools/generate-deals.mjs` scans deterministic seeded shuffles. For each:
 
-The solver also reports its **search effort** — the number of game states it had
-to expand to find a win. This is the difficulty signal: trivial deals fall in a
-few hundred states, deeply tangled ones take tens of thousands. The pool of
-solvable deals is sorted by effort and split into four equal quartiles.
+1. **Winnability gate (issue #1).** The offline solver (`src/solver.js`, DFS with
+   a transposition set + safe-foundation autoplay, node-budgeted) must actually
+   win it; deals it can't crack are discarded. A kept deal comes with a real,
+   verified win.
+2. **Difficulty grade (issue #3).** A "reasonable but imperfect" auto-player
+   (`tools/casual-player.mjs`) plays the deal `TRIALS` times with a fixed
+   `MISTAKE` rate; the fraction it wins (0..1) is the difficulty signal. It
+   prefers good moves (reveal face-down cards, build sequences, collect to
+   foundations) but sometimes plays a random/greedy-wrong move — so a *forgiving*
+   deal (many winning lines) wins most trials, while a *fragile* deal (one narrow
+   line) loses most of them.
 
-> NOTE: The solver omits "pull a card back off a foundation" moves and bounds
-> its search by a node budget, so it may *fail to win* some deals that are in
-> fact winnable. That only ever causes such deals to be **discarded** — it can
-> never cause an unwinnable deal to be accepted. Every bundled deal is a genuine
-> win. (No solver runs at play time; this is all generation-time only — see §8.)
+The pool of winnable deals is sorted by win rate and split into four equal
+quartiles. Lowest win rate = hardest.
+
+> NOTE: The solver omits "pull a card back off a foundation" moves and bounds its
+> search by a node budget, so it may *fail to win* some deals that are in fact
+> winnable — that only ever **discards** a deal, never accepts an unwinnable one.
+> The casual player is stochastic but **seeded**, so the whole generation is
+> reproducible. (No solver/player runs during normal play; difficulty grading is
+> generation-time only. The live Hint button is the one play-time solver use —
+> §11.7.)
 
 ### 4.2 Buckets
 
-| Level | Meaning (solver-effort quartile) |
-|-------|-----------------------------------|
-| Easy | Won with the least search — open, forgiving layouts. |
-| Hard | Below-median search effort. |
-| Expert | Above-median search effort. |
-| Master | Won with the most search — deeply tangled, but **still winnable**. |
+Difficulty = how often a casual, imperfect player wins the deal:
 
-~100 deals per bucket are bundled (`PER_BUCKET` in the generator).
+| Level | Meaning (casual-player win-rate quartile) |
+|-------|-------------------------------------------|
+| Easy | Highest win rate — forgiving; you can play loosely and still win. |
+| Hard | Above-median win rate. |
+| Expert | Below-median win rate — usually lost without careful play. |
+| Master | Lowest win rate — a casual player almost always loses, but it **is** winnable with precise play. |
+
+~100 deals per bucket are bundled (`PER_BUCKET` in the generator). The exact
+per-bucket win-rate ranges are written into the header of the generated
+`src/deals.js`.
 
 ### 4.3 Deal data format
 

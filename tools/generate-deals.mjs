@@ -1,78 +1,88 @@
 // Offline deal-pool generator. Runs in Node only (never loaded by the browser).
 //   node tools/generate-deals.mjs   (or: npm run gen)
 //
-// Issue #1: every bundled deal is now VERIFIED WINNABLE by the offline solver
-// (tools/solver.mjs) before it is written. We scan deterministic seeded
-// shuffles, run the solver on each, and keep only deals it can actually win.
+// Issue #1: every bundled deal is VERIFIED WINNABLE by the offline solver
+// (src/solver.js) before it is written. We scan deterministic seeded shuffles,
+// run the solver on each, and keep only deals it can actually win.
 //
-// Difficulty is the solver's SEARCH EFFORT (nodes expanded to find a win):
-// trivial deals fall in a few hundred nodes, tangled ones take tens of
-// thousands. We collect a pool of solvable deals, sort by effort, and split it
-// into four equal quartiles — easy / hard / expert / master. Unlike the old
-// heuristic buckets, "master" now means "winnable but hard to untangle", not
-// "statistically brutal, maybe impossible" (see SCOPE.md §4).
+// Issue #3: difficulty is the CASUAL-PLAYER WIN RATE (tools/casual-player.mjs) —
+// how often a "reasonable but imperfect" player wins the deal over many seeded
+// trials. This tracks felt difficulty far better than solver node-count (which
+// is near-constant for the ~75% of deals that are trivially forgiving): a
+// forgiving deal you win loosely lands in EASY; a fragile deal you almost always
+// lose — yet that the solver proves winnable — lands in MASTER. We collect a
+// pool of solvable deals, sort by win rate, and split it into four quartiles.
 //
-// Output is fully deterministic (seeded RNG, fixed solver, no timestamps) so CI
-// can verify src/deals.js is up to date with `git diff --exit-code`.
+// Output is fully deterministic (seeded RNG, fixed solver + player) so the
+// result is reproducible; `npm run verify` re-solves the pool in CI.
 
 import engine from '../src/engine.js';
 import solver from '../src/solver.js';
+import casual from './casual-player.mjs';
 import { writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 const PER_BUCKET = 100;             // deals kept per difficulty
 const MAX_NODES = 150000;           // solver budget per deal (cap-hit = discarded)
-const MAX_SCAN = 5000;              // safety cap on seeds scanned
+const TRIALS = 80;                  // casual-player playthroughs per deal
+const MISTAKE = 0.18;               // casual-player mistake rate (tuned for spread)
+const MAX_SCAN = 8000;              // safety cap on seeds scanned
 const NEEDED = PER_BUCKET * 4;      // total solvable deals required
-const BUCKETS = ['easy', 'hard', 'expert', 'master'];
 
-function collectSolvable() {
-  const solved = [];
+// Hardest (lowest win rate) first -> easiest last, so quartiles map cleanly.
+const BUCKETS_BY_DIFFICULTY = ['master', 'expert', 'hard', 'easy'];
+
+function collectPool() {
+  const pool = [];
   let seed = 0;
-  while (solved.length < NEEDED && seed < MAX_SCAN) {
+  while (pool.length < NEEDED && seed < MAX_SCAN) {
     seed++;
     const order = engine.shuffledOrder(seed);
-    const r = solver.solve(order, { maxNodes: MAX_NODES });
-    if (r.solved) solved.push({ order, nodes: r.nodes });
-    if (seed % 200 === 0) {
-      console.log(`  scanned ${seed} seeds, ${solved.length}/${NEEDED} solvable kept`);
+    if (!solver.solve(order, { maxNodes: MAX_NODES }).solved) continue; // keep only winnable
+    const winRate = casual.winRate(order, { trials: TRIALS, mistake: MISTAKE, seed });
+    pool.push({ order, winRate });
+    if (seed % 100 === 0) {
+      console.log(`  scanned ${seed} seeds, ${pool.length}/${NEEDED} winnable deals graded`);
     }
   }
-  if (solved.length < NEEDED) {
-    throw new Error(`only found ${solved.length}/${NEEDED} solvable deals within ${MAX_SCAN} seeds`);
+  if (pool.length < NEEDED) {
+    throw new Error(`only found ${pool.length}/${NEEDED} solvable deals within ${MAX_SCAN} seeds`);
   }
-  return { solved, scanned: seed };
+  return { pool, scanned: seed };
 }
 
-function bucketize(solved) {
-  // Sort by ascending search effort, then split into four equal contiguous
-  // quartiles. Ties broken by order string so the result is deterministic.
-  solved.sort((a, b) => (a.nodes - b.nodes) || (a.order.join() < b.order.join() ? -1 : 1));
+function bucketize(pool) {
+  // Sort by ascending win rate (hardest first), then split into four equal
+  // contiguous quartiles. Ties broken by order string for determinism.
+  pool.sort((a, b) => (a.winRate - b.winRate) || (a.order.join() < b.order.join() ? -1 : 1));
   const buckets = {};
   const ranges = {};
-  BUCKETS.forEach((name, b) => {
-    const slice = solved.slice(b * PER_BUCKET, (b + 1) * PER_BUCKET);
+  BUCKETS_BY_DIFFICULTY.forEach((name, b) => {
+    const slice = pool.slice(b * PER_BUCKET, (b + 1) * PER_BUCKET);
     buckets[name] = slice.map((d) => d.order);
-    ranges[name] = [slice[0].nodes, slice[slice.length - 1].nodes];
+    ranges[name] = [slice[0].winRate, slice[slice.length - 1].winRate];
   });
   return { buckets, ranges };
 }
 
 function serialize({ buckets, ranges }, scanned) {
+  // Write easy -> master for readability (lookup is by key, so order is cosmetic).
+  const order = ['easy', 'hard', 'expert', 'master'];
+  const pct = (r) => '[' + Math.round(r[0] * 100) + '%,' + Math.round(r[1] * 100) + '%]';
   let s = '';
   s += '// AUTO-GENERATED by tools/generate-deals.mjs — do not edit by hand.\n';
   s += '// Regenerate with: npm run gen\n';
-  s += `// Every deal below is SOLVER-VERIFIED WINNABLE (tools/solver.mjs, maxNodes=${MAX_NODES}).\n`;
+  s += `// Every deal below is SOLVER-VERIFIED WINNABLE (src/solver.js, maxNodes=${MAX_NODES}).\n`;
+  s += `// Difficulty = casual-player win rate (${TRIALS} trials, mistake=${MISTAKE}); higher level = lower win rate.\n`;
+  s += `// Per-bucket win-rate ranges: ${order.map((n) => `${n} ${pct(ranges[n])}`).join(', ')}\n`;
   s += `// Params: perBucket=${PER_BUCKET}, scanned ${scanned} seeded shuffles.\n`;
-  s += `// Difficulty = solver search effort (nodes). Per-bucket node ranges: ${JSON.stringify(ranges)}\n`;
   s += 'window.Solitaire = window.Solitaire || {};\n';
   s += 'window.Solitaire.DEALS = {\n';
-  const names = Object.keys(buckets);
-  names.forEach((name, ni) => {
+  order.forEach((name, ni) => {
     s += `  "${name}": [\n`;
     s += buckets[name].map((o) => '    ' + JSON.stringify(o)).join(',\n');
-    s += '\n  ]' + (ni < names.length - 1 ? ',' : '') + '\n';
+    s += '\n  ]' + (ni < order.length - 1 ? ',' : '') + '\n';
   });
   s += '};\n';
   return s;
@@ -81,10 +91,13 @@ function serialize({ buckets, ranges }, scanned) {
 const here = dirname(fileURLToPath(import.meta.url));
 const outPath = join(here, '..', 'src', 'deals.js');
 
-console.log(`Scanning seeded shuffles for ${NEEDED} solver-verified-winnable deals...`);
-const { solved, scanned } = collectSolvable();
-const result = bucketize(solved);
+console.log(`Scanning seeded shuffles for ${NEEDED} winnable deals (solver + casual-player grading)...`);
+const { pool, scanned } = collectPool();
+const result = bucketize(pool);
 writeFileSync(outPath, serialize(result, scanned));
-console.log(`Wrote src/deals.js (${scanned} seeds scanned, ${solved.length} solvable kept)`);
-console.log('Per-bucket solver-effort (node) ranges:', result.ranges);
-for (const k of BUCKETS) console.log(`  ${k}: ${result.buckets[k].length} deals`);
+console.log(`Wrote src/deals.js (${scanned} seeds scanned, ${pool.length} deals graded)`);
+console.log('Per-bucket win-rate ranges:');
+for (const k of ['easy', 'hard', 'expert', 'master']) {
+  const r = result.ranges[k];
+  console.log(`  ${k}: ${result.buckets[k].length} deals, win rate ${(r[0] * 100).toFixed(0)}%–${(r[1] * 100).toFixed(0)}%`);
+}
