@@ -47,8 +47,10 @@ Number cards show standard pip layouts; court cards use suit-colored chess
 glyphs (J = ♞, Q = ♛, K = ♚). Cards animate when moving, flipping, and being
 collected (snappy ~160ms); this respects your `prefers-reduced-motion` setting.
 
-When you win, a classic bouncing-card cascade paints the screen before the stats
-appear — click anywhere to skip it.
+When you win, a celebration animation paints the screen before the stats
+appear — click anywhere to skip it. Most wins draw a random reel (the classic
+bouncing-card cascade, fireworks, or confetti), but a couple of **hidden** ones
+are unlocked by *how* you won — try finishing fast, or in very few moves.
 
 ![Win cascade](win_preview.png)
 

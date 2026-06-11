@@ -277,6 +277,7 @@
   }
 
   function onWin() {
+    var elapsedMs = app.startTime ? Date.now() - app.startTime : 0;
     stopTimer();
     if (root.sound) { root.sound.collect(); setTimeout(function () { root.sound.collect(); }, 160); }
     var t = document.getElementById('time').textContent;
@@ -285,9 +286,12 @@
     var overlay = document.getElementById('win-overlay');
     overlay.classList.add('hidden');
     var show = function () { overlay.classList.remove('hidden'); };
-    // Play the bouncing-card cascade first; reveal the stats overlay after it
-    // finishes (or when the player clicks to skip). winAnim handles reduced-motion.
-    if (root.winAnim) root.winAnim.play(app.state, show); else show();
+    // Play a win reel first; reveal the stats overlay after it finishes (or when
+    // the player clicks to skip). The reel is chosen from the game's stats —
+    // fast/efficient wins unlock hidden ones (issue #5). winAnim handles
+    // reduced-motion. Pass moves + elapsed time so it can pick.
+    var stats = { moves: app.state.moves, elapsedMs: elapsedMs, difficulty: app.difficulty };
+    if (root.winAnim) root.winAnim.play(app.state, show, stats); else show();
   }
 
   app.getState = function () { return app.state; };

@@ -28,7 +28,7 @@ draw, and unlimited undo per match.
 | Deal source | **Pre-generated, pre-classified deal pool** bundled as a data file. New Game picks a random deal from the selected difficulty bucket. Instant, fully offline. |
 | Hints | **Limited solver hints** (issue #2) — a Hint button suggests the best next move, capped per game. (Originally none; added post-v1, see §11.7.) |
 | Stats | **Move counter + elapsed timer** shown per match. |
-| Win handling | **Win detection** + a visible celebration + a **New Game** button. |
+| Win handling | **Win detection** + a visible celebration + a **New Game** button. Several celebration reels — a random one each win, plus **hidden reels** unlocked by fast / low-move wins (issue #5, see §11.9). |
 | Auto-move | **Double-click a card** to auto-send it to a legal foundation. |
 | Interaction | **Both** drag-and-drop **and** click-to-select-then-click-destination. |
 | Scoring | **No point scoring** (explicitly out of scope). |
@@ -329,6 +329,7 @@ and committed.
 - Canvas-drawn simplified card faces (rounded rect + rank/suit, suit-colored) from
   the cards' suit/rank — no images. Honors `prefers-reduced-motion` (skips to the
   overlay). New Game tears the canvas down.
+- *(Extended in §11.9 to a set of reels, the cascade being one of them.)*
 
 ### 11.7 Hint button (implemented — issue #2)
 - A top-bar **Hint** button, **limited to 3 per game** (resets on New Game,
@@ -362,3 +363,28 @@ and committed.
   on the board and while Auto-Collect is animating (same lock as New Game).
 - No new engine state or persistence: a refresh still starts a new deal. Restart
   only reaches back to the deal currently in memory.
+
+### 11.9 Multiple win celebrations + hidden reels (implemented — issue #5)
+- `src/win-anim.js` now hosts **five** canvas reels instead of one, all sharing
+  the same full-screen `<canvas>`, `drawCard`, click-to-skip, reduced-motion
+  skip, and an 11s hard cap (no reel can run forever):
+  - **cascade** — the original bouncing-card cascade (§11.6).
+  - **fireworks** — radial spark bursts against a fading night sky.
+  - **confetti** — coloured chips and suit glyphs twirling down.
+  - **fountain** — all 52 cards erupt from a bottom nozzle and rain back down.
+  - **supernova** — the deck spirals out of the centre on six arms, glowing gold.
+- **Selection** is a single pure function, `pickAnimation({ moves, elapsedMs }, rng)`:
+  - An ordinary win draws **at random** from the standard pool
+    (cascade / fireworks / confetti).
+  - **Hidden reels** are unlocked only by performance — a deliberate easter egg,
+    so they stay a surprise and are *not* revealed on the stats overlay:
+    - win in **≤ `EFFICIENT_MOVES` (140)** moves → **supernova**;
+    - win in **under `SPEED_MS` (3:00)** → **fountain**;
+    - if both, efficiency wins the tie (supernova is the rarer reward).
+  - The thresholds are named constants at the top of the file, easy to retune.
+- The function is **pure and DOM-free** (rng is injectable), so the unlock rules
+  are unit-tested headlessly in `test/win-anim.test.mjs`. `app.onWin` passes the
+  match's `moves` and elapsed ms into `play(state, onDone, stats)`.
+- `drawCard` gained optional `scale` / `rot` / `alpha` / `glow` / `tint` so the
+  fancier reels can spin, grow, fade and gild cards; with none set it renders the
+  exact upright face the cascade always used (no visual change to §11.6).
