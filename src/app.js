@@ -15,7 +15,8 @@
     running: false,
     autoRunning: false,   // true while Auto-Collect is animating
     autoTimer: null,
-    hintsLeft: 0          // remaining hints this game (issue #2)
+    hintsLeft: 0,         // remaining hints this game (issue #2)
+    currentOrder: null    // the 52-card order of the deal in play, for Restart (issue #4)
   };
 
   var HINTS_PER_GAME = 3;
@@ -97,6 +98,7 @@
     if (app.autoRunning || !canAutoCollect(app.state)) return;
     app.autoRunning = true;
     document.getElementById('new-game').disabled = true;
+    document.getElementById('restart').disabled = true;
     document.getElementById('difficulty').disabled = true;
     clearHint();
     updateUndoBtn();
@@ -116,6 +118,7 @@
     app.autoTimer = null;
     app.autoRunning = false;
     document.getElementById('new-game').disabled = false;
+    document.getElementById('restart').disabled = false;
     document.getElementById('difficulty').disabled = false;
     updateUndoBtn();
     updateAutoBtn();
@@ -242,11 +245,14 @@
     afterChange();
   }
 
-  function newGame(diff) {
+  // Deal `order` to the board and reset everything tied to a single match:
+  // undo history, hint budget, timer, and the win overlay. `dealFromOrder`
+  // builds a fresh state out of new card objects without mutating `order`, so
+  // the same array can be re-dealt later (that's what Restart relies on).
+  function startWithOrder(order) {
     if (app.autoRunning) stopAutoCollect();
     if (root.winAnim) root.winAnim.stop();
-    app.difficulty = diff || app.difficulty;
-    var order = dealForDifficulty(app.difficulty);
+    app.currentOrder = order;
     app.state = engine.dealFromOrder(order);
     app.history = [];
     app.hintsLeft = HINTS_PER_GAME;
@@ -254,7 +260,20 @@
     app.startTime = 0;
     document.getElementById('time').textContent = '0:00';
     document.getElementById('win-overlay').classList.add('hidden');
+    document.getElementById('restart').disabled = false;
     afterChange();
+  }
+
+  function newGame(diff) {
+    app.difficulty = diff || app.difficulty;
+    startWithOrder(dealForDifficulty(app.difficulty));
+  }
+
+  // Restart (issue #4): replay the SAME deal from scratch. Re-deals the stored
+  // order, so the player gets an identical opening to retry after dead-ending.
+  function restart() {
+    if (!app.currentOrder) return;
+    startWithOrder(app.currentOrder);
   }
 
   function onWin() {
@@ -276,6 +295,7 @@
   app.commit = commit;
   app.undo = undo;
   app.newGame = newGame;
+  app.restart = restart;
 
   // ---- bootstrap ---------------------------------------------------------
   function boot() {
@@ -285,6 +305,7 @@
     document.getElementById('win-new-game').addEventListener('click', function () {
       newGame(document.getElementById('difficulty').value);
     });
+    document.getElementById('restart').addEventListener('click', restart);
     document.getElementById('undo').addEventListener('click', undo);
     document.getElementById('hint').addEventListener('click', showHint);
     document.getElementById('auto-collect').addEventListener('click', startAutoCollect);

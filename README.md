@@ -38,6 +38,8 @@ That's it — the whole game runs from the local files over `file://`.
 - **Undo:** click **Undo** (or press **Ctrl/Cmd+Z**). Unlimited within a match.
 - **New Game / Difficulty:** pick a level and press **New Game**. Changing the
   difficulty applies on the next New Game.
+- **Restart:** press **Restart** to replay the *same* deal from the opening
+  layout — handy when you dead-end and want another attempt at the hand you had.
 - **Sound:** toggle the 🔊 / 🔇 button. Effects (card flick, place, foundation
   chime) are synthesized in-browser via the Web Audio API — no audio files.
 
@@ -61,13 +63,16 @@ bundled deal is **solver-verified winnable** (`src/solver.js` wins it before it
 is added to the pool), so no game starts in an unwinnable position.
 
 The four levels — **easy / hard / expert / master** — are graded by the
-**casual-player win rate**: a "reasonable but imperfect" auto-player
-(`tools/casual-player.mjs`) plays each deal many times, and the fraction it wins
-is the difficulty signal. This tracks *felt* difficulty: an **easy** deal is
-forgiving (you can play loosely and still win); a **master** deal is one a casual
-player almost always loses — yet the solver proves it *is* winnable with precise
-play. (This replaced an earlier "solver search effort" metric, which couldn't
-tell easy and expert apart — see [`SCOPE.md`](./SCOPE.md) §4.)
+**win rate of an imperfect auto-player** (`tools/casual-player.mjs`): it plays
+each deal many times, and the fraction it wins is the difficulty signal. This
+tracks *felt* difficulty. Two profiles are used so the hard end stays sharp: a
+**casual** player (frequent mistakes) splits easy vs hard, while a **skilled**
+player (near-optimal) splits expert vs master — a **master** deal is one even a
+skilled player wins under 5% of the time, yet the solver proves it *is* winnable
+with precise play. Deals are placed by absolute win-rate thresholds (not
+quartiles), oversampling the rare hard tail. (This replaced an earlier "solver
+search effort" metric, which couldn't tell easy and expert apart — see
+[`SCOPE.md`](./SCOPE.md) §4.)
 
 ## Project layout
 

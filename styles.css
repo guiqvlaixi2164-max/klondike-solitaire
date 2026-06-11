@@ -70,6 +70,7 @@ button:disabled { opacity: .4; cursor: default; }
 button[hidden] { display: none; }
 button.auto { background: var(--drop); color: #04331f; }
 button.hint-btn { background: var(--hint); color: #1c0838; }
+button.restart-btn { background: transparent; color: var(--text); border: 1px solid var(--muted); }
 
 .difficulty { color: var(--muted); font-size: 14px; display: flex; align-items: center; gap: 6px; }
 select {

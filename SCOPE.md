@@ -23,6 +23,7 @@ draw, and unlimited undo per match.
 | Platform | **Browser** — plain HTML + CSS + JavaScript (no framework, no build step). Open a single file to play. |
 | Draw mode | **Draw one card** at a time from the stock. (Fixed; not configurable.) |
 | Undo | **Unlimited undo** within a match. Each click reverts exactly one prior move. |
+| Restart | **Restart the same deal** (issue #4) — a Restart button re-deals the current hand from its opening layout, so a stuck player can retry the identical game. (Added post-v1, see §11.8.) |
 | Difficulty | **Four levels** — easy, hard, expert, master. Every bundled deal is **offline-solver-verified winnable**; the levels grade deals by **casual-player win rate** (how often an imperfect auto-player wins). See §4. |
 | Deal source | **Pre-generated, pre-classified deal pool** bundled as a data file. New Game picks a random deal from the selected difficulty bucket. Instant, fully offline. |
 | Hints | **Limited solver hints** (issue #2) — a Hint button suggests the best next move, capped per game. (Originally none; added post-v1, see §11.7.) |
@@ -95,6 +96,13 @@ with one-card draw. Difficulty only selects **which deals you are given**.
 > hard / expert were indistinguishable in play. Difficulty is now the
 > **casual-player win rate** (below). `src/heuristic.js` is retained for its
 > tests but no longer used.
+>
+> **Issue #3 (follow-up).** The first win-rate build split a small pool into four
+> equal quartiles and stopped at the first 400 winnable deals — so "master" was
+> only the unluckiest 25% of a mostly-easy sample, and the casual player
+> *saturated* (it loses ~100% of hard deals, so they all collapsed to a 0% win
+> rate and became indistinguishable). Expert/master felt too soft. Grading is now
+> **two-tier against absolute thresholds**, with rejection sampling (below).
 
 ### 4.1 How deals are classified
 
@@ -104,16 +112,24 @@ with one-card draw. Difficulty only selects **which deals you are given**.
    a transposition set + safe-foundation autoplay, node-budgeted) must actually
    win it; deals it can't crack are discarded. A kept deal comes with a real,
    verified win.
-2. **Difficulty grade (issue #3).** A "reasonable but imperfect" auto-player
-   (`tools/casual-player.mjs`) plays the deal `TRIALS` times with a fixed
-   `MISTAKE` rate; the fraction it wins (0..1) is the difficulty signal. It
-   prefers good moves (reveal face-down cards, build sequences, collect to
-   foundations) but sometimes plays a random/greedy-wrong move — so a *forgiving*
-   deal (many winning lines) wins most trials, while a *fragile* deal (one narrow
-   line) loses most of them.
+2. **Difficulty grade (issue #3).** An imperfect auto-player
+   (`tools/casual-player.mjs`) plays the deal many times with a fixed `MISTAKE`
+   rate; the fraction it wins (0..1) is the difficulty signal. It prefers good
+   moves (reveal face-down cards, build sequences, collect to foundations) but
+   sometimes plays a random/greedy-wrong move — so a *forgiving* deal (many
+   winning lines) wins most trials, while a *fragile* deal (one narrow line)
+   loses most of them. Two player profiles are used:
+   - a **casual** player (high `MISTAKE`) — felt difficulty for a typical player;
+   - a **skilled** player (low `MISTAKE`) — only struggles on genuinely fragile
+     deals, giving the hard tail the dynamic range the casual player lacks.
 
-The pool of winnable deals is sorted by win rate and split into four equal
-quartiles. Lowest win rate = hardest.
+Deals are assigned to buckets by **absolute win-rate thresholds**, not quartiles:
+the casual win rate splits **easy vs hard**, and (for deals the casual player
+finds hard) the skilled win rate splits **expert vs master**. The generator
+**rejection-samples** — it keeps scanning seeds until every bucket is full,
+oversampling the rare hard tail rather than stopping at the first N winnable
+deals. A deal the casual player loses but a skilled player still clears reliably
+punishes mistakes yet has a clear line, so it stays **hard**, not expert/master.
 
 > NOTE: The solver omits "pull a card back off a foundation" moves and bounds its
 > search by a node budget, so it may *fail to win* some deals that are in fact
@@ -125,18 +141,20 @@ quartiles. Lowest win rate = hardest.
 
 ### 4.2 Buckets
 
-Difficulty = how often a casual, imperfect player wins the deal:
+Difficulty = how often an imperfect player wins the deal (graded player in
+parentheses):
 
-| Level | Meaning (casual-player win-rate quartile) |
-|-------|-------------------------------------------|
-| Easy | Highest win rate — forgiving; you can play loosely and still win. |
-| Hard | Above-median win rate. |
-| Expert | Below-median win rate — usually lost without careful play. |
-| Master | Lowest win rate — a casual player almost always loses, but it **is** winnable with precise play. |
+| Level | Meaning |
+|-------|---------|
+| Easy | **Casual** wins ≥ 80% — forgiving; you can play loosely and still win. |
+| Hard | **Casual** wins 40–80% (or loses more but a skilled player clears it reliably) — needs care. |
+| Expert | **Skilled** wins 5–30% — usually lost without precise play. |
+| Master | **Skilled** wins < 5% — even a near-optimal player almost always loses, yet it **is** winnable. |
 
 ~100 deals per bucket are bundled (`PER_BUCKET` in the generator). The exact
-per-bucket win-rate ranges are written into the header of the generated
-`src/deals.js`.
+thresholds (`EASY_MIN_CASUAL`, `HARD_MIN_CASUAL`, `EXPERT_MAX_SKILLED`,
+`MASTER_MAX_SKILLED`) and the measured per-bucket win-rate ranges are written
+into the header of the generated `src/deals.js`.
 
 ### 4.3 Deal data format
 
@@ -328,3 +346,19 @@ and committed.
   back to "flip the next card from the stock" (draw, or recycle when empty).
 - This is the one place a solver runs **at play time**; deal generation/
   verification remain offline (§4).
+
+### 11.8 Restart the same deal (implemented — issue #4)
+- A top-bar **Restart** button that re-deals the **current hand** from its
+  opening layout, for when a player dead-ends and wants to retry the *same*
+  game rather than draw a fresh one.
+- The deal is identified by its 52-card **order array**, which `newGame` now
+  remembers on `app.currentOrder`. Restart simply re-deals that stored order;
+  New Game picks a new one. `engine.dealFromOrder` builds fresh card objects and
+  never mutates the order, so the same array re-deals to a byte-identical
+  opening every time.
+- Restart resets exactly what a new match resets — undo history, the 3-hint
+  budget, the move counter and timer, and any in-progress win/auto animation —
+  but keeps the difficulty and the deal. It is disabled until the first deal is
+  on the board and while Auto-Collect is animating (same lock as New Game).
+- No new engine state or persistence: a refresh still starts a new deal. Restart
+  only reaches back to the deal currently in memory.
